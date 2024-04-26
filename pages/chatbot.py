@@ -3,11 +3,13 @@ from dotenv import load_dotenv
 
 import streamlit as st
 import os
-
+from menu import menu
+# Redirect to app.py if not logged in, otherwise show the navigation menu
+menu()
 load_dotenv()
 api_key = os.getenv("OPENAI_API_KEY")
 st.title("🦙💬 Ollama Chatbot")
-model_options = ["llama2", "gpt-3.5-turbo"]
+model_options = ["llama3", "gpt-3.5-turbo"]
 
 # Create a box for model configurations
 with st.expander("Model Configurations"):
@@ -22,13 +24,14 @@ def clear_chat_history():
 st.button('Clear Chat History', on_click=clear_chat_history)
 
 if "selected_model" not in st.session_state:
-    st.session_state["selected_model"] = "llama2"
+    st.session_state["selected_model"] = "llama3"
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
+    st.session_state.messages.append({"role": "assistant", "content": "How can i help you?"})
 
 base_url = "http://localhost:11434/v1"
-if selected_model == "llama2":
+if selected_model == "llama3":
     base_url = "http://localhost:11434/v1"
 elif selected_model == "gpt-3.5-turbo":
     base_url = "https://api.openai.com/v1"
@@ -38,8 +41,9 @@ else:
 client = OpenAI(api_key=api_key, base_url=base_url)
 
 for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
+    if isinstance(message, dict):
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
 if prompt := st.chat_input("What is up?"):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
@@ -53,7 +57,7 @@ if prompt := st.chat_input("What is up?"):
             top_p=st.session_state["top_p"],
             messages=[
                 {"role": m["role"], "content": m["content"]}
-                for m in st.session_state.messages
+                for m in st.session_state.messages if isinstance(m, dict)
             ],
             stream=True,
         )

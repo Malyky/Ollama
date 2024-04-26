@@ -1,9 +1,5 @@
 import streamlit as st
 
-st.title('Hello, Conny!')
-st.write('Ich liebe dich über alles')
-st.write('Über alles')
-
 from langchain.chains.summarize import load_summarize_chain
 from langchain.document_loaders.pdf import PyPDFLoader
 from langchain.document_loaders.word_document import Docx2txtLoader
@@ -26,14 +22,13 @@ class Summary:
     def __init__(self, name, text):
         self.name = name
         self.text = text
-from menu import menu_with_redirect
+from menu import menu
 
-# Redirect to app.py if not logged in, otherwise show the navigation menu
-menu_with_redirect()
+menu()
 
 # Set up OpenAI API
 #os.environ["OPENAI_API_KEY"] = apikey
-llm = Ollama(model="llama2",
+llm = Ollama(model="llama3",
              temperature=0.9,
              # Number of Layers to send to the the gpu
              num_gpu=32,
@@ -88,13 +83,14 @@ def summarizeWordFiles(wordFiles):
         os.remove(temp_path)
 
     return summaries
-
 # Streamlit App
-st.title("Multiple Documents Summarizer")
-
+st.title("📝Multiple Documents Summarizer")
+st.markdown("")
+st.markdown("")
 # Allow user to upload PDF files
-pdf_files = st.file_uploader("Upload PDF files", type="pdf", accept_multiple_files=True)
-wordFiles = st.file_uploader("Upload Word files", type="docx", accept_multiple_files=True)
+pdf_files = st.file_uploader("📕 Upload PDF files", type="pdf", accept_multiple_files=True)
+st.markdown("")
+wordFiles = st.file_uploader("📘 Upload Word files", type="docx", accept_multiple_files=True)
 
 if pdf_files:
     # Generate summaries when the "Generate Summary" button is clicked

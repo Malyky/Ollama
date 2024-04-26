@@ -15,7 +15,10 @@ from dotenv import load_dotenv
 import os
 import bs4
 import requests
+from menu import menu
 
+# Redirect to app.py if not logged in, otherwise show the navigation menu
+menu()
 load_dotenv()
 api_key = os.getenv("OPENAI_API_KEY")
 
@@ -56,14 +59,14 @@ def askQuestion(query):
 
     # load it into Chroma
     vectorstore = Chroma.from_documents(splittedDocs, embedding_function)
-    retriever = vectorstore.as_retriever(search_kwargs={'k': 10})
+    retriever = vectorstore.as_retriever(search_kwargs={'k': 2})
 
     docs = vectorstore.similarity_search(query)
 
     llm = ChatOpenAI(model="gpt-3.5-turbo", api_key=api_key, max_tokens=100)
-    llm = ChatOllama(model="llama2")
+    llm = ChatOllama(model="llama3")
     chain = load_qa_chain(llm, "stuff") | parse
-
+    print(query)
     result = chain.invoke({"input_documents": docs, "question":query})
     with st.chat_message("assistant"):
         st.write(result)

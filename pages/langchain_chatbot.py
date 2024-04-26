@@ -1,4 +1,4 @@
-from openai import OpenAI
+from langchain_openai import OpenAI
 from dotenv import load_dotenv
 import streamlit as st
 from langchain_community.llms import Ollama
@@ -19,14 +19,15 @@ from langchain.schema import (
 )
 
 from langchain.output_parsers.combining import CombiningOutputParser
-
+from menu import menu
 import streamlit as st
 import os
 
+menu()
 load_dotenv()
 api_key = os.getenv("OPENAI_API_KEY")
-st.title("🦙💬 Ollama Chatbot")
-model_options = ["llama2", "gpt-3.5-turbo"]
+st.title("🦜💬 Langchain Chatbot")
+model_options = ["llama3", "gpt-3.5-turbo"]
 
 # Create a box for model configurations
 with st.expander("Model Configurations"):
@@ -43,21 +44,21 @@ def clear_chat_history():
 st.button('Clear Chat History', on_click=clear_chat_history)
 
 if "selected_model" not in st.session_state:
-    st.session_state["selected_model"] = "llama2"
+    st.session_state["selected_model"] = "llama3"
 if "messages" not in st.session_state:
     st.session_state.messages = [
         AIMessage(content="Hello, I am a bot. How can I help you?"),
     ]
 
 base_url = "http://localhost:11434/v1"
-chat_model = ChatOllama(model="llama2", api_key=api_key, streaming=True, callbacks=[StreamingStdOutCallbackHandler()])
-if selected_model == "llama2":
+chat_model = None
+if selected_model == "llama3":
     base_url = "http://localhost:11434/v1"
-    chat_model: ChatOllama = ChatOllama(model="llama2", api_key=api_key, streaming=True, callbacks=[StreamingStdOutCallbackHandler()])#, baseUrl=base_url)
+    chat_model: ChatOllama = ChatOllama(model="llama3", api_key=api_key, streaming=True, num_predict=max_length, top_p=top_p, temperature=temperature, callbacks=[StreamingStdOutCallbackHandler()])#, baseUrl=base_url)
 elif selected_model == "gpt-3.5-turbo":
     base_url = "https://api.openai.com/v1"
     #TODO add other parameters like temperature etc
-    chat_model: ChatOpenAI = ChatOpenAI(model="gpt-3.5-turbo", api_key=api_key, max_tokens=max_length, streaming=True, callbacks=[StreamingStdOutCallbackHandler()])#, baseUrl=base_url)
+    chat_model: ChatOpenAI = ChatOpenAI(model="gpt-3.5-turbo", api_key=api_key, max_tokens=max_length, temperature=temperature, top_p=top_p, streaming=True, callbacks=[StreamingStdOutCallbackHandler()])#, baseUrl=base_url)
 else:
     base_url = "http://localhost:11434/v1"
 
@@ -76,8 +77,18 @@ llmChain: LLMChain = LLMChain(
     #memory=memory
 )
 #chain = llmChain | StrOutputParser()
-chat_modelWithExpanderParameters: ChatOllama = ChatOllama(model="llama2", temperature=temperature, top_p=top_p, num_predict=max_length, api_key=api_key, streaming=True, callbacks=[StreamingStdOutCallbackHandler()])#, baseUrl=base_url)
-chain = prompt | chat_model | StrOutputParser()
+from langchain_core.runnables import RunnableGenerator
+from typing import Iterable
+from langchain_core.messages import AIMessage, AIMessageChunk
+
+def streaming_parse(chunks: Iterable[AIMessageChunk]) -> Iterable[str]:
+    for chunk in chunks:
+        yield chunk.content
+
+
+streaming_parse = RunnableGenerator(streaming_parse)
+chat_modelWithExpanderParameters: ChatOllama = ChatOllama(model="llama3", temperature=temperature, top_p=top_p, num_predict=max_length, api_key=api_key, streaming=True, callbacks=[StreamingStdOutCallbackHandler()])#, baseUrl=base_url)
+chain = prompt | chat_model | streaming_parse
 #st.write_stream(chain.stream({"chat_history": [], "question": "hi"}))
 client = OpenAI(api_key=api_key, base_url=base_url)
 
@@ -94,7 +105,7 @@ if prompt := st.chat_input("What is up?"):
     st.session_state.messages.append(
         HumanMessage(content=prompt),
     )
-    st.session_state.messages.append({"role": "user", "content": prompt})
+    #st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
